@@ -1,0 +1,35 @@
+# EC2 "ordenes" (subred privada) — PostgreSQL + servicio de órdenes e inventario
+# Uso:  cp .env_example .env  (y llenar)  ->  docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ordenes-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_DB_USER: ${APP_DB_USER}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:5432:5432"          # sólo localhost: se administra por túnel SSH
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Se habilita en la Entrega 2 (código en ./app)
+  # api:
+  #   build: ./app
+  #   container_name: ordenes-api
+  #   restart: unless-stopped
+  #   env_file: .env
+  #   ports: ["3003:3003"]
+  #   depends_on: { postgres: { condition: service_healthy } }
+
+volumes:
+  pgdata:

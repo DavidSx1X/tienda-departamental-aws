@@ -1,0 +1,16 @@
+# Copiar a ~/.ssh/config y reemplazar <IP_GATEWAY>
+Host gw
+  HostName <IP_GATEWAY>
+Host catalogo
+  HostName 10.0.2.10
+  ProxyJump gw
+Host carrito
+  HostName 10.0.2.20
+  ProxyJump gw
+Host ordenes
+  HostName 10.0.2.30
+  ProxyJump gw
+Host *
+  User ec2-user
+  IdentityFile ~/tienda-equipo.pem
+  StrictHostKeyChecking accept-new

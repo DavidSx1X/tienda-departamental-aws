@@ -1,0 +1,35 @@
+# =============================================================================
+#  Estructura de claves de Redis — ejemplos ejecutables
+#  grep -v "^#" estructura_claves.redis | redis-cli -a "$REDIS_PASSWORD"
+# =============================================================================
+
+# ---------- Redis del CARRITO (EC2 carrito) ----------
+# Sesión de usuario: HASH, expira a los 30 min sin actividad (TTL deslizante)
+HSET sesion:9f8c2d1e-4b7a-4e33-a2c1-6b0f1d2e3a4b cliente_id 1 email mariana.lopez@correo.mx creada_en 2026-11-20T09:00:00-06:00
+EXPIRE sesion:9f8c2d1e-4b7a-4e33-a2c1-6b0f1d2e3a4b 1800
+
+# Carrito: HASH campo = sku, valor = cantidad. Expira a los 7 días sin cambios
+HSET carrito:1 REF-LG-GT32 1 CAM-OXF-AZM 2
+EXPIRE carrito:1 604800
+# Modificar cantidad / eliminar producto
+HSET carrito:1 CAM-OXF-AZM 3
+HDEL carrito:1 CAM-OXF-AZM
+HGETALL carrito:1
+
+# Candado de checkout: evita que el mismo cliente confirme dos veces a la vez
+SET checkout:lock:1 9f8c2d1e NX EX 30
+
+# ---------- Redis de CACHÉ del catálogo (EC2 catálogo) ----------
+# Detalle de producto (cache-aside), TTL 10 min
+SET cat:v1:producto:REF-LG-GT32 "{\"sku\":\"REF-LG-GT32\",\"nombre\":\"Refrigerador LG 11 pies3 Inverter\",\"precio\":\"15999.00\"}" EX 600
+# Versión de listados: se incrementa en cada alta/cambio de producto
+SET cat:v1:listas:version 1
+# Listado filtrado: la clave incluye la versión y un hash de los filtros, TTL 2 min
+SET cat:v1:lista:1:3f2a9c1e "[{\"sku\":\"REF-LG-GT32\"},{\"sku\":\"REF-MAB-RMS400\"}]" EX 120
+# Primera página de reseñas, TTL 5 min
+SET cat:v1:resenas:REF-LG-GT32:p1 "[{\"autor\":\"Mariana L.\",\"calificacion\":5}]" EX 300
+# Invalidación al actualizar REF-LG-GT32:
+DEL cat:v1:producto:REF-LG-GT32 cat:v1:resenas:REF-LG-GT32:p1
+INCR cat:v1:listas:version
+TTL carrito:1
+TTL sesion:9f8c2d1e-4b7a-4e33-a2c1-6b0f1d2e3a4b
